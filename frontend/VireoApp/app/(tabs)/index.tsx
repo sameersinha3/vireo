@@ -1,7 +1,6 @@
 import { Image } from 'expo-image';
 import { Platform, StyleSheet } from 'react-native';
 
-import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -12,37 +11,32 @@ export default function HomeScreen() {
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
       headerImage={
         <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+          source={require('@/assets/images/vireo.jpg')}
+          style={styles.logo}
         />
       }>
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Welcome to Vireo!</ThemedText>
-        <HelloWave />
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Input your preferences</ThemedText>
+        <ThemedText type="subtitle">Step 1: Scan your item</ThemedText>
         <ThemedText>
-          What sustainability initiatives do you care about?
+          Scan your food product to view its health information
         </ThemedText>
         <ThemedText>
-          We assign scores to each product based on your preferred initiatives, and you can change these at any time.
+          Tap the Scan tab to get started.
         </ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Scan Products</ThemedText>
+        <ThemedText type="subtitle">Step 2: View Info</ThemedText>
         <ThemedText>
-          {`Tap the Scan tab to learn more about any product in our database and view its score.`}
+          See the most up to date information about the ingredients, backed by science.
         </ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 3: Learn about alternatives</ThemedText>
         <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
+          We suggest similar alternatives, without the bad stuff.
         </ThemedText>
       </ThemedView>
     </ParallaxScrollView>
@@ -59,9 +53,9 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 8,
   },
-  reactLogo: {
+  logo: {
     height: 178,
-    width: 290,
+    width: 400,
     bottom: 0,
     left: 0,
     position: 'absolute',
