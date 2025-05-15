@@ -1,0 +1,42 @@
+{
+  "aspartame": {
+    "category": "Artificial Sweetener",
+    "risk": "Controversial",
+    "summary": "Aspartame is an artificial sweetener that has been the subject of health debates. Despite early concerns about cancer risk, the majority of current scientific evidence indicates that aspartame is safe for consumption at typical intake levels."
+  },
+  "red 40": {
+    "category": "Food Dye",
+    "risk": "May affect behavior in children",
+    "summary": "Red 40 is a synthetic food dye approved for use in many countries. Some studies suggest it may contribute to hyperactivity or behavioral issues in sensitive children, but evidence is mixed."
+  },
+  "sodium benzoate": {
+    "category": "Preservative",
+    "risk": "May form benzene with vitamin C",
+    "summary": "Sodium benzoate is a preservative commonly used in acidic foods. When combined with ascorbic acid (vitamin C), it can form benzene, a known carcinogen, though levels in commercial products are usually low."
+  },
+  "bht": {
+    "category": "Preservative",
+    "risk": "Possible endocrine disruptor",
+    "summary": "Butylated hydroxytoluene (BHT) is used to preserve fats and oils. Some animal studies suggest possible endocrine-disrupting effects, but human data is limited. Regulatory bodies generally consider it safe within limits."
+  },
+  "high fructose corn syrup": {
+    "category": "Sweetener",
+    "risk": "Linked to metabolic issues",
+    "summary": "High fructose corn syrup (HFCS) is widely used as a sweetener. Excessive consumption has been associated with obesity, insulin resistance, and fatty liver, but it's not uniquely more harmful than other sugars."
+  },
+  "potassium bromate": {
+    "category": "Flour Treatment Agent",
+    "risk": "Possible carcinogen",
+    "summary": "Potassium bromate is used to improve bread texture but is classified as a possible human carcinogen. It's banned in several countries, though still legal in the U.S. for specific uses."
+  },
+  "msg": {
+    "category": "Flavor Enhancer",
+    "risk": "Generally recognized as safe",
+    "summary": "Monosodium glutamate (MSG) enhances umami flavor. Despite concerns about 'Chinese Restaurant Syndrome', numerous studies have found no consistent evidence of harmful effects at normal consumption levels."
+  },
+  "caramel color": {
+    "category": "Coloring",
+    "risk": "May contain 4-MEI (possible carcinogen)",
+    "summary": "Caramel coloring is used in soft drinks and sauces. Some types may contain 4-MEI, a potential carcinogen, though typical exposure levels are considered low risk by regulatory agencies."
+  }
+}

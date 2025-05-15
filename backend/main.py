@@ -4,8 +4,13 @@ from typing import List, Optional
 import firebase_admin
 from firebase_admin import credentials, firestore
 from dotenv import load_dotenv
+import json
 import os
 import requests
+
+# Load ingredient list once at startup
+with open(os.path.join(os.path.dirname(__file__), "ingredient_lookup.json")) as f:
+    INGREDIENT_LOOKUP = json.load(f)
 
 # Load environment variables
 load_dotenv()
@@ -64,6 +69,19 @@ async def get_product(barcode: str):
     else:
         raise HTTPException(status_code=404, detail=f"Product with barcode '{barcode}' not found")
 
+def enrich_ingredients(ingredients):
+    enriched = []
+    for item in ingredients:
+        name = item.get("id", "").lower()
+        summary = INGREDIENT_LOOKUP.get(name, {}).get("summary", "No known health information available.")
+        enriched.append({
+            "id": name,
+            "text": item.get("text", ""),
+            "summary": summary
+        })
+    return enriched
+
+
 @app.post("/scan", response_model=Product)
 async def scan_barcode(scan: ScanRequest):
     if db is None:
@@ -81,12 +99,14 @@ async def scan_barcode(scan: ScanRequest):
     # Fetch from OpenFoodFacts
     OFF_URL = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
     res = requests.get(OFF_URL)
-    print(res)
 
     if res.status_code != 200 or res.json().get("status") == 0:
         raise HTTPException(status_code=404, detail="Product not found in OpenFoodFacts")
 
     off_data = res.json()["product"]
+
+    ingredients = off_data.get("ingredients", [])
+    enriched_data = enrich_ingredients(ingredients)
 
     product_data = {
         "barcode": barcode,
@@ -100,6 +120,8 @@ async def scan_barcode(scan: ScanRequest):
         "ingredients": off_data.get("ingredients", []),
         "image_url": off_data.get("image_url")
     }
+
+    product_data["enriched_ingredients"] = enriched_data
 
     # Store in Firestore
     product_ref.set(product_data)
