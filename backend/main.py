@@ -53,3 +53,46 @@ async def get_product(barcode: str):
         return Product(**product_data)
     else:
         raise HTTPException(status_code=404, detail=f"Product with barcode '{barcode}' not found")
+    
+from fastapi import Request
+import requests
+
+class ScanRequest(BaseModel):
+    barcode: str
+
+@app.post("/scan")
+async def scan_barcode(scan: ScanRequest):
+    if db is None:
+        raise HTTPException(status_code=500, detail="Firebase not initialized")
+
+    barcode = scan.barcode
+    product_ref = db.collection("products").document(barcode)
+    product_doc = product_ref.get()
+
+    if product_doc.exists:
+        return product_doc.to_dict()
+
+    OFF_URL = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
+    res = requests.get(OFF_URL)
+
+    if res.status_code != 200 or res.json().get("status") == 0:
+        raise HTTPException(status_code=404, detail="Product not found in OpenFoodFacts")
+
+    off_data = res.json()["product"]
+
+    name = off_data.get("product_name", "Unknown")
+    brand = off_data.get("brands", "Unknown")
+    packaging_material = off_data.get("packaging_materials_tags", ["unknown"])[0]
+    packaging_recyclable = "recyclable" in off_data.get("packaging_tags", [])
+
+    product_obj = {
+        "barcode": barcode,
+        "name": name,
+        "brand": brand,
+        "packaging_material": packaging_material,
+        "packaging_recyclable": packaging_recyclable,
+    }
+
+    product_ref.set(product_obj)
+
+    return product_obj

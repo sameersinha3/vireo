@@ -21,14 +21,26 @@ export default function TabTwoScreen() {
     setFacing(current => (current === 'back' ? 'front' : 'back'));
   }
 
-  function handleBarCodeScanned(result: BarcodeScanningResult) {
-    if (scanned) return; // Prevent duplicate scans
-
-    setScanned(true);
-    Alert.alert('Barcode Scanned', `Type: ${result.type}\nData: ${result.data}`, [
-      { text: 'OK', onPress: () => setScanned(false) },
-    ]);
-  }
+  const handleBarcodeScanned = async ({ data }: { data: string }) => {
+    try {
+      const response = await fetch("http://<your-ip>:8000/scan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ barcode: data }),
+      });
+  
+      if (!response.ok) throw new Error("Product not found");
+  
+      const product = await response.json();
+      console.log("Fetched product:", product);
+      // Show in UI or navigate to product page
+    } catch (err) {
+      console.error("Scan error:", err);
+    }
+  };
+  
 
   return (
     <View style={styles.container}>
@@ -38,7 +50,7 @@ export default function TabTwoScreen() {
         barcodeScannerSettings={{
           barcodeTypes: ['qr', 'code128', 'ean13'],
         }}
-        onBarcodeScanned={handleBarCodeScanned}
+        onBarcodeScanned={handleBarcodeScanned}
       >
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
