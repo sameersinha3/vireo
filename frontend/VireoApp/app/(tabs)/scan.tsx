@@ -22,8 +22,12 @@ export default function TabTwoScreen() {
   }
 
   const handleBarcodeScanned = async ({ data }: { data: string }) => {
+    if (scanned) return; 
+
+    setScanned(true);
+
     try {
-      const response = await fetch("http://<your-ip>:8000/scan", {
+      const response = await fetch("http://localhost:8000/scan", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
