@@ -1,21 +1,18 @@
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { CameraView, CameraType, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
 import { useState } from 'react';
-import { Button, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Button, StyleSheet, Text, TouchableOpacity, View, Alert } from 'react-native';
 
 export default function TabTwoScreen() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
+  const [scanned, setScanned] = useState(false);
 
-  if (!permission) {
-    return <View />;
-  }
-
+  if (!permission) return <View />;
   if (!permission.granted) {
-    // Camera permissions are not granted yet.
     return (
       <View style={styles.container}>
         <Text style={styles.message}>We need your permission to show the camera</Text>
-        <Button onPress={requestPermission} title="grant permission" />
+        <Button onPress={requestPermission} title="Grant Permission" />
       </View>
     );
   }
@@ -24,9 +21,25 @@ export default function TabTwoScreen() {
     setFacing(current => (current === 'back' ? 'front' : 'back'));
   }
 
+  function handleBarCodeScanned(result: BarcodeScanningResult) {
+    if (scanned) return; // Prevent duplicate scans
+
+    setScanned(true);
+    Alert.alert('Barcode Scanned', `Type: ${result.type}\nData: ${result.data}`, [
+      { text: 'OK', onPress: () => setScanned(false) },
+    ]);
+  }
+
   return (
     <View style={styles.container}>
-      <CameraView style={styles.camera} facing={facing}>
+      <CameraView
+        style={styles.camera}
+        facing={facing}
+        barcodeScannerSettings={{
+          barcodeTypes: ['qr', 'code128', 'ean13'],
+        }}
+        onBarcodeScanned={handleBarCodeScanned}
+      >
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
             <Text style={styles.text}>Flip Camera</Text>
