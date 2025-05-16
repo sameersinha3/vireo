@@ -1,0 +1,87 @@
+{
+    "artificial sweeteners": [
+      "aspartame",
+      "sucralose",
+      "saccharin",
+      "acesulfame potassium",
+      "neotame",
+      "advantame"
+    ],
+    "sugar alcohols": [
+      "erythritol",
+      "xylitol",
+      "sorbitol",
+      "mannitol",
+      "maltitol",
+      "isomalt",
+      "lactitol"
+    ],
+    "preservatives": [
+      "sodium benzoate",
+      "potassium sorbate",
+      "calcium propionate",
+      "sodium nitrate",
+      "sodium nitrite",
+      "benzoic acid",
+      "butylated hydroxyanisole",
+      "butylated hydroxytoluene",
+      "bha",
+      "bht",
+      "sulfur dioxide",
+      "sodium sulfite"
+    ],
+    "food dyes": [
+      "red 40",
+      "yellow 5",
+      "yellow 6",
+      "blue 1",
+      "blue 2",
+      "green 3",
+      "carmine",
+      "annatto",
+      "caramel color",
+      "titanium dioxide"
+    ],
+    "emulsifiers and thickeners": [
+      "carrageenan",
+      "polysorbate 80",
+      "polysorbate 60",
+      "mono- and diglycerides",
+      "propylene glycol",
+      "cellulose gum",
+      "xanthan gum",
+      "guar gum",
+      "locust bean gum",
+      "pectin",
+      "gellan gum"
+    ],
+    "flavor enhancers": [
+      "monosodium glutamate",
+      "disodium inosinate",
+      "disodium guanylate",
+      "hydrolyzed vegetable protein",
+      "autolyzed yeast extract",
+      "yeast extract"
+    ],
+    "stimulants": [
+      "caffeine",
+      "guarana",
+      "yerba mate",
+      "taurine",
+      "theobromine"
+    ],
+    "controversial or emerging": [
+      "propylene glycol alginate",
+      "aluminum ammonium sulfate",
+      "aluminum potassium sulfate",
+      "potassium bromate",
+      "azodicarbonamide",
+      "brominated vegetable oil",
+      "propylene glycol",
+      "edta",
+      "trisodium phosphate",
+      "natural flavors",
+      "artificial flavors"
+    ]
+  }
+  
