@@ -1,12 +1,13 @@
 import requests
-from huggingface_hub import InferenceClient
+import google.generativeai as genai
 import os
 from dotenv import load_dotenv
-
 from xml.etree import ElementTree
 
-
 load_dotenv()
+
+# Configure Gemini with your API key
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 def retrieve_pubmed_studies(ingredient: str, limit=3) -> list[dict]:
     # Step 1: Search for PubMed IDs
@@ -23,7 +24,7 @@ def retrieve_pubmed_studies(ingredient: str, limit=3) -> list[dict]:
     if not id_list:
         return []
 
-    # Step 2: Fetch abstracts for each PubMed ID
+    # Step 2: Fetch abstracts
     fetch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
     fetch_params = {
         "db": "pubmed",
@@ -43,22 +44,9 @@ def retrieve_pubmed_studies(ingredient: str, limit=3) -> list[dict]:
 
     return results
 
-
-
-def retrieve_studies(ingredient: str, limit=3) -> list[str]:
-    url = f"https://api.semanticscholar.org/graph/v1/paper/search?query={ingredient}&limit={limit}&fields=title,abstract"
-    response = requests.get(url)
-    papers = response.json().get("data", [])
-    return papers 
-
-def rag_analysis(ingredient):
+def rag_analysis(ingredient: str):
     papers = retrieve_pubmed_studies(ingredient)
 
-    client = InferenceClient(
-        provider="fireworks-ai",
-        api_key = os.getenv("HUGGINGFACE_API_KEY")
-    )
-    
     if not papers:
         return f"No relevant research found for {ingredient}."
 
@@ -67,7 +55,6 @@ def rag_analysis(ingredient):
         for paper in papers
     )
 
-    
     prompt = f"""
 You are a food science expert analyzing current research.
 
@@ -78,22 +65,9 @@ If there is public concern but evidence suggests safety, say "despite concerns, 
 Research abstracts:
 {context}
 """
-    #print("Successfully Prompted LLM")
 
-    messages = [
-        {
-            "role": "user",
-            "content": prompt
-        }
-    ]
+    model = genai.GenerativeModel("gemini-1.5-flash")  # or "gemini-1.5-pro" if you have access
 
-    completion = client.chat.completions.create(
-        model="meta-llama/Llama-3.1-8B-Instruct", 
-        messages=messages, 
-        temperature=0.5,
-        max_tokens=500,
-        top_p=0.7,
-    )
+    response = model.generate_content(prompt)
 
-    #response = model.generate_content(prompt)
-    return completion.choices[0].message.content
+    return response.text
