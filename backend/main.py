@@ -99,8 +99,8 @@ async def scan_barcode(scan: ScanRequest):
 
     off_data = res.json()["product"]
 
-    ingredients = off_data.get("ingredients", [])
-    results = {}
+    raw_ingredients = off_data.get("raw_ingredients_text", "")
+    ingredients = raw_ingredients.split(',')
     for ingredient in ingredients:
         name = ingredient.lower().strip()
 
@@ -110,6 +110,7 @@ async def scan_barcode(scan: ScanRequest):
         summary = get_summary_from_firestore(name)
         if not summary:
             summary = rag_analysis(name)
+            print(summary) # For testing purposes
             store_summary_in_firestore(name, summary)
         # What to do with this summary? Next thing - maybe don't return product_data but just the RAG analysis
     
