@@ -1,8 +1,12 @@
 import requests
-import google.generativeai as genai
+from huggingface_hub import InferenceClient
 import os
+from dotenv import load_dotenv
 
 from xml.etree import ElementTree
+
+
+load_dotenv()
 
 def retrieve_pubmed_studies(ingredient: str, limit=3) -> list[dict]:
     # Step 1: Search for PubMed IDs
@@ -50,8 +54,10 @@ def retrieve_studies(ingredient: str, limit=3) -> list[str]:
 def rag_analysis(ingredient):
     papers = retrieve_pubmed_studies(ingredient)
 
-    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-    model = genai.GenerativeModel("models/gemini-2.0-flash")
+    client = InferenceClient(
+        provider="fireworks-ai",
+        api_key = os.getenv("HUGGINGFACE_API_KEY")
+    )
     
     if not papers:
         return f"No relevant research found for {ingredient}."
@@ -61,16 +67,33 @@ def rag_analysis(ingredient):
         for paper in papers
     )
 
+    
     prompt = f"""
 You are a food science expert analyzing current research.
 
-Based on the abstracts below, what does current research suggest about the health risks of the food ingredient '{ingredient}'?
+Based on the abstracts below, give advice to a potential consumer about the health risks of the food ingredient '{ingredient}'? 
 
 If there is public concern but evidence suggests safety, say "despite concerns, research suggests...". Be honest about uncertainty. Use simple language.
 
 Research abstracts:
 {context}
 """
-    # print("Successfully Prompted LLM") IDK WHY ITS PROMPTING BUT LLM WONT ACCEPT
-    response = model.generate_content(prompt)
-    return response.text
+    #print("Successfully Prompted LLM")
+
+    messages = [
+        {
+            "role": "user",
+            "content": prompt
+        }
+    ]
+
+    completion = client.chat.completions.create(
+        model="meta-llama/Llama-3.1-8B-Instruct", 
+        messages=messages, 
+        temperature=0.5,
+        max_tokens=500,
+        top_p=0.7,
+    )
+
+    #response = model.generate_content(prompt)
+    return completion.choices[0].message.content
