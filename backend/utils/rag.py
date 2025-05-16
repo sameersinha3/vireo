@@ -1,7 +1,8 @@
 import requests
 from google import genai
+import os
 
-client = genai.Client(api_key="AIzaSyBVqnW7zVsp_LaF8w-A5zcXc4_Y3H56E4Q")
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 '''
 RAG Search: Use Semantic Scholar to retrieve 3 studies on a certain ingredient
