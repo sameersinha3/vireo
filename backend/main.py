@@ -1,18 +1,21 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-import firebase_admin
 from firebase_admin import credentials, firestore
 from dotenv import load_dotenv
 import json
-import os
 import requests
 from itertools import chain
+import os
+from backend.firebase_init import db
 
-from utils.rag import rag_analysis
-from utils.firestore import get_summary_from_firestore, store_summary_in_firestore
 
-with open("ingredient_watchlist.json") as f:
+from backend.utils.rag import rag_analysis
+from backend.utils.firestore import get_summary_from_firestore, store_summary_in_firestore
+
+file_path = os.path.join(os.path.dirname(__file__), "ingredient_watchlist.json")
+
+with open(file_path) as f:
     watchlist = json.load(f)
     flattened_watchlist = set(
         i.lower() for i in chain.from_iterable(watchlist.values())
@@ -21,16 +24,6 @@ with open("ingredient_watchlist.json") as f:
 load_dotenv()
 
 app = FastAPI()
-credentials_path = os.getenv("FIREBASE_CREDENTIALS_PATH")
-
-try:
-    cred = credentials.Certificate(credentials_path)
-    firebase_admin.initialize_app(cred)
-    db = firestore.client()
-    print("Firebase Admin SDK initialized successfully!")
-except Exception as e:
-    print(f"Error initializing Firebase Admin SDK: {e}")
-    db = None
 
 # Models
 class Ingredient(BaseModel):
@@ -79,10 +72,13 @@ async def scan_barcode(scan: ScanRequest):
         raise HTTPException(status_code=500, detail="Firebase not initialized")
     else:
         print("Firebase Initialized")
+    
+    
 
     barcode = scan.barcode
     product_ref = db.collection("products").document(barcode)
     product_doc = product_ref.get()
+    
 
     #if product_doc.exists:
     #    return Product(**product_doc.to_dict())
@@ -104,13 +100,11 @@ async def scan_barcode(scan: ScanRequest):
         if name not in flattened_watchlist:
             continue
         
-        #summary = get_summary_from_firestore(name)
+        summary = get_summary_from_firestore(name)
         summary = None
         if not summary:
-            #summary = rag_analysis(name)
-            summary = "debug"
-            #store_summary_in_firestore(name, summary)
-        # What to do with this summary? Next thing - maybe don't return product_data but just the RAG analysis
+            summary = "debug" #rag_analysis(name)
+            store_summary_in_firestore(name, summary)
         summaries[ingredient] = summary
     
     if not summaries.keys():

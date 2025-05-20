@@ -1,4 +1,4 @@
-from firebase_admin import firestore
+from backend.firebase_init import db
 
 def get_summary_from_firestore(ingredient):
     doc_ref = db.collection("ingredient_summaries").document(ingredient.lower())

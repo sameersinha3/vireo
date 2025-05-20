@@ -29,6 +29,7 @@ export default function TabTwoScreen() {
     try {
       console.log(data)
       const response = await fetch("http://172.16.0.141:8000/scan", {
+        
         method: "POST",
         headers: {
           "Content-Type": "application/json",
