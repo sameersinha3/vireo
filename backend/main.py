@@ -49,7 +49,7 @@ class Product(BaseModel):
     nutriscore: Optional[str]
     eco_score_level: Optional[List[str]]
     ingredients: Optional[List[Ingredient]]
-    raw_ingredients_text: Optional[str]
+    ingredients_text: Optional[str]
     image_url: Optional[str]
 
 class ScanRequest(BaseModel):
@@ -84,8 +84,8 @@ async def scan_barcode(scan: ScanRequest):
     product_ref = db.collection("products").document(barcode)
     product_doc = product_ref.get()
 
-    if product_doc.exists:
-        return Product(**product_doc.to_dict())
+    #if product_doc.exists:
+    #    return Product(**product_doc.to_dict())
 
     # Fetch from OpenFoodFacts
     OFF_URL = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
@@ -96,19 +96,20 @@ async def scan_barcode(scan: ScanRequest):
 
     off_data = res.json()["product"]
 
-    raw_ingredients = off_data.get("raw_ingredients_text", "")
+    raw_ingredients = off_data.get("ingredients_text", "")
     ingredients = raw_ingredients.split(',')
     summaries = {}
     for ingredient in ingredients:
         name = ingredient.lower().strip()
-
         if name not in flattened_watchlist:
             continue
         
-        summary = get_summary_from_firestore(name)
+        #summary = get_summary_from_firestore(name)
+        summary = None
         if not summary:
-            summary = rag_analysis(name)
-            store_summary_in_firestore(name, summary)
+            #summary = rag_analysis(name)
+            summary = "debug"
+            #store_summary_in_firestore(name, summary)
         # What to do with this summary? Next thing - maybe don't return product_data but just the RAG analysis
         summaries[ingredient] = summary
     
@@ -123,7 +124,7 @@ async def scan_barcode(scan: ScanRequest):
         "packaging_recyclable": off_data.get("packaging_recycling") == "yes",
         "nutriscore": off_data.get("nutriscore_grade"),
         "eco_score_level": off_data.get("environment_impact_level_tags"),
-        "raw_ingredients_text": off_data.get("ingredients_text"),
+        "ingredients_text": off_data.get("ingredients_text"),
         "ingredients": off_data.get("ingredients", []),
         "image_url": off_data.get("image_url")
     }
