@@ -6,7 +6,6 @@ from xml.etree import ElementTree
 
 load_dotenv()
 
-# Configure Gemini with your API key
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 def retrieve_pubmed_studies(ingredient: str, limit=3) -> list[dict]:
@@ -66,7 +65,7 @@ Research abstracts:
 {context}
 """
 
-    model = genai.GenerativeModel("gemini-1.5-flash")  # or "gemini-1.5-pro" if you have access
+    model = genai.GenerativeModel("gemini-1.5-flash")
 
     response = model.generate_content(prompt)
 

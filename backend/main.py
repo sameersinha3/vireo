@@ -12,17 +12,14 @@ from itertools import chain
 from utils.rag import rag_analysis
 from utils.firestore import get_summary_from_firestore, store_summary_in_firestore
 
-# Load watchlist once at startup
 with open("ingredient_watchlist.json") as f:
     watchlist = json.load(f)
     flattened_watchlist = set(
         i.lower() for i in chain.from_iterable(watchlist.values())
     )
 
-# Load environment variables
 load_dotenv()
 
-# Initialize Firebase
 app = FastAPI()
 credentials_path = os.getenv("FIREBASE_CREDENTIALS_PATH")
 
@@ -76,7 +73,7 @@ async def get_product(barcode: str):
     else:
         raise HTTPException(status_code=404, detail=f"Product with barcode '{barcode}' not found")
 
-@app.post("/scan", response_model=Product)
+@app.post("/scan")
 async def scan_barcode(scan: ScanRequest):
     if db is None:
         raise HTTPException(status_code=500, detail="Firebase not initialized")
@@ -101,6 +98,7 @@ async def scan_barcode(scan: ScanRequest):
 
     raw_ingredients = off_data.get("raw_ingredients_text", "")
     ingredients = raw_ingredients.split(',')
+    summaries = {}
     for ingredient in ingredients:
         name = ingredient.lower().strip()
 
@@ -110,10 +108,12 @@ async def scan_barcode(scan: ScanRequest):
         summary = get_summary_from_firestore(name)
         if not summary:
             summary = rag_analysis(name)
-            print(summary) # For testing purposes
             store_summary_in_firestore(name, summary)
         # What to do with this summary? Next thing - maybe don't return product_data but just the RAG analysis
+        summaries[ingredient] = summary
     
+    if not summaries.keys():
+        summaries = {"Note": "This product has no ingredients that were flagged by our watchlist."}
 
     product_data = {
         "barcode": barcode,
@@ -130,4 +130,4 @@ async def scan_barcode(scan: ScanRequest):
     # Store in Firestore
     product_ref.set(product_data)
 
-    return Product(**product_data)
+    return summaries

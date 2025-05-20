@@ -38,8 +38,8 @@ export default function TabTwoScreen() {
   
       if (!response.ok) throw new Error("Product not found");
   
-      const product = await response.json();
-      console.log("Fetched product:", product);
+      const res = await response.json();
+      console.log("Response:", res);
       // Show in UI or navigate to product page
     } catch (err) {
       console.error("Scan error:", err);

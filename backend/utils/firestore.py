@@ -1,7 +1,5 @@
 from firebase_admin import firestore
 
-db = firestore.client()
-
 def get_summary_from_firestore(ingredient):
     doc_ref = db.collection("ingredient_summaries").document(ingredient.lower())
     doc = doc_ref.get()
