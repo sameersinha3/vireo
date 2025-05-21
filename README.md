@@ -22,6 +22,7 @@ Vireo's backend is written in Python with FastAPI, connected to our Google Fires
 To run the backend, run
 
 ```bash
+source vireo/bin/activate
 PYTHONPATH=$(pwd) uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
