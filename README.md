@@ -8,8 +8,21 @@ Vireo aims to make this information accessible to all, by allowing you to scan t
 
 Vireo is a mobile app written in React Native.
 
+To run the frontend, run
+```bash
+cd frontend/VireoApp
+npx expo start
+```
+
+
 ## Backend
 
 Vireo's backend is written in Python with FastAPI, connected to our Google Firestore database. Upon receiving a barcode from the frontend, we query an open source API to retrieve the ingredients, identify potentially problematic ingredients, query PubMed for recent studies, and use Google Gemini to generate an overall safety analysis of each ingredient, so you can stay up to date with the most up to date knowledge. If an ingredient has been scanned recently, it will use the blurb in our database rather than generating a new summary.
+
+To run the backend, run
+
+```bash
+PYTHONPATH=$(pwd) uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+```
 
 Please note that we are not doctors, and if you have any sort of medical condition, you should consult your doctor. This is not medical advice; this is simply a tool to learn about various ingredients.

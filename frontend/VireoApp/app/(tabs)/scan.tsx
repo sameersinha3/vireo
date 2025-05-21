@@ -1,11 +1,14 @@
 import { CameraView, CameraType, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
 import { useState } from 'react';
 import { Button, StyleSheet, Text, TouchableOpacity, View, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
+
 
 export default function TabTwoScreen() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
+  const router = useRouter();
 
   if (!permission) return <View />;
   if (!permission.granted) {
@@ -40,8 +43,14 @@ export default function TabTwoScreen() {
       if (!response.ok) throw new Error("Product not found");
   
       const res = await response.json();
-      console.log("Response:", res);
+      //console.log("Response:", JSON.stringify(res));
       // Show in UI or navigate to product page
+      router.push({
+        pathname: "/(tabs)/scanresultscreen",
+        params: {
+          summaries: JSON.stringify(res),
+        },
+      });
     } catch (err) {
       console.error("Scan error:", err);
     }
