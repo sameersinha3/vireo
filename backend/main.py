@@ -72,8 +72,6 @@ async def scan_barcode(scan: ScanRequest):
         raise HTTPException(status_code=500, detail="Firebase not initialized")
     else:
         print("Firebase Initialized")
-    
-    
 
     barcode = scan.barcode
     product_ref = db.collection("products").document(barcode)
@@ -103,7 +101,7 @@ async def scan_barcode(scan: ScanRequest):
         summary = get_summary_from_firestore(name)
         summary = None
         if not summary:
-            summary = "debug" #rag_analysis(name)
+            summary = rag_analysis(name)
             store_summary_in_firestore(name, summary)
         summaries[ingredient] = summary
     

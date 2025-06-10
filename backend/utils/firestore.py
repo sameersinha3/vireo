@@ -8,3 +8,4 @@ def get_summary_from_firestore(ingredient):
 def store_summary_in_firestore(ingredient, summary):
     doc_ref = db.collection("ingredient_summaries").document(ingredient.lower())
     doc_ref.set({"summary": summary})
+

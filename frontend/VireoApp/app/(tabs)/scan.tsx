@@ -1,13 +1,14 @@
 import { CameraView, CameraType, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
 import { useState } from 'react';
-import { Button, StyleSheet, Text, TouchableOpacity, View, Alert } from 'react-native';
+import { Button, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 
 
 export default function TabTwoScreen() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
-  const [scanned, setScanned] = useState(false);
+  const [scanned, setScanned] = useState(false); // Tracks if a barcode has been processed recently
+  const [loading, setLoading] = useState(false); // Indicates if an API call is in progress
   const router = useRouter();
 
   if (!permission) return <View />;
@@ -21,58 +22,84 @@ export default function TabTwoScreen() {
   }
 
   function toggleCameraFacing() {
-    setFacing(current => (current === 'back' ? 'front' : 'back'));
+    // Only allow camera flip if not currently loading
+    if (!loading) {
+      setFacing(current => (current === 'back' ? 'front' : 'back'));
+    }
   }
 
   const handleBarcodeScanned = async ({ data }: { data: string }) => {
-    if (scanned) return; 
+    if (scanned || loading) {
+      return;
+    }
 
-    setScanned(true);
+    setScanned(true); // Mark as scanned to prevent immediate re-scanning
+    setLoading(true); // Indicate that an API call is starting (show loading screen)
 
     try {
-      console.log(data)
-      const response = await fetch("http://172.16.0.141:8000/scan", {
-        
+      console.log("Barcode scanned:", data);
+      const response = await fetch("http://192.168.68.59:8000/scan", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ barcode: data }),
       });
-  
-      if (!response.ok) throw new Error("Product not found");
-  
+
+      if (!response.ok) {
+        throw new Error("Product not found or server error");
+      }
+
       const res = await response.json();
-      //console.log("Response:", JSON.stringify(res));
-      // Show in UI or navigate to product page
+      console.log("API Response received:", res);
+
       router.push({
         pathname: "/(tabs)/scanresultscreen",
         params: {
-          summaries: JSON.stringify(res),
+          summaries: JSON.stringify(res), // Pass the complete response
         },
       });
+
     } catch (err) {
       console.error("Scan error:", err);
+      Alert.alert(
+        "Scan Error",
+        `Could not retrieve product information: ${err instanceof Error ? err.message : String(err)}. Please try again.`
+      );
+    } finally {
+      // Always stop loading and reset scanned state, regardless of success or failure.
+      // This allows the user to scan again if they return to this screen or if an error occurred.
+      setLoading(false);
+      setScanned(false);
     }
   };
-  
+
 
   return (
     <View style={styles.container}>
-      <CameraView
-        style={styles.camera}
-        facing={facing}
-        barcodeScannerSettings={{
-          barcodeTypes: ['qr', 'code128', 'ean13'],
-        }}
-        onBarcodeScanned={handleBarcodeScanned}
-      >
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
-            <Text style={styles.text}>Flip Camera</Text>
-          </TouchableOpacity>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0000ff" />
+          <Text style={styles.loadingText}>Conducting Research (this could take a minute)...</Text>
         </View>
-      </CameraView>
+      ) : (
+        <CameraView
+          style={styles.camera}
+          facing={facing}
+          barcodeScannerSettings={{
+            barcodeTypes: ['qr', 'code128', 'ean13'],
+          }}
+          // IMPORTANT: Conditionally disable barcode scanning when loading
+          // By setting onBarcodeScanned to undefined, the camera stops emitting events
+          onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+        >
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
+              <Text style={styles.text}>Flip Camera</Text>
+            </TouchableOpacity>
+          </View>
+        </CameraView>
+      )}
     </View>
   );
 }
@@ -81,6 +108,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center', // Center content for loading screen
   },
   message: {
     textAlign: 'center',
@@ -88,6 +116,7 @@ const styles = StyleSheet.create({
   },
   camera: {
     flex: 1,
+    width: '100%', // Ensure camera takes full width
   },
   buttonContainer: {
     flex: 1,
@@ -104,5 +133,18 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: 'white',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 18,
+    color: '#333',
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
 });
