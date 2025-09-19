@@ -1,10 +1,35 @@
 # vireo
 
-Vireo is an app to educate the world on our food choices. Unlike an app like MyFitnessPal, which focuses on overall caloric intake, micro- and macro- nutrient consumption, and hitting our overall nutrition goals, Vireo aims to alert users of the acutal ingredients and whether or not they are harmful. For example, while many Americans consider aspartame to be unsafe, current research suggests it's safe in moderation. On the other hand, very few Americans actively avoid things like "sodium benzoate," simply because we've never heard of it.
+Vireo is a website AND app to educate the world on our food choices. Unlike an app like MyFitnessPal, which focuses on overall caloric intake, micro- and macro- nutrient consumption, and hitting our overall nutrition goals, Vireo aims to alert users of the acutal ingredients and whether or not they are harmful. 
 
-Vireo aims to make this information accessible to all, by allowing you to scan the barcode, and you will get a breakdown of the ingredients; which ones are good, which ones are bad, and whether or not you need to "fear" a certain ingredient. Upon scanning, we hope to link actual studies and evidence to justify whether certain ingredients are safe, risky, or need more research!
+
+Things Vireo warns you about include:
+### Chemical endings
+Anything ending in -ate, -ide, -ene, -ol, or -ium
+### Preservatives
+Anything with benzoate, sorbate, nitrate/nitrite, sulfite, phosphate, propionate
+### Artificial Colors
+Red 40, Red 3, Yellow 5, etc., or anything with artificial or synthetic
+### Emulsifiers
+Anything with gum, carrageenan, polysorbate, lecithin, mono- and diglyceride
+### Artificial Sweeteners
+Aspartame, sucralose, saccharine, stevia, etc.
+### Flavor Enhancers
+Glutamate (MSG), Inosinate, guanylate
+
+What this means is, when you scan a product, the system flags all ingredients matching these patterns and anything I've manually added, and generates a research brief so you can know if you really do need to avoid things like aspartame. Just because it sounds artificial doesn't mean it's bad!
 
 ## Frontend
+
+To run the frontend navigate to web-frontend and run 
+
+```bash
+npm start
+```
+
+### Web UI
+
+### Mobile App (Under development)
 
 Vireo is a mobile app written in React Native.
 

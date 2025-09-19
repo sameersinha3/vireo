@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 from firebase_admin import credentials, firestore
@@ -12,18 +13,24 @@ from backend.firebase_init import db
 
 from backend.utils.rag import rag_analysis
 from backend.utils.firestore import get_summary_from_firestore, store_summary_in_firestore
+from backend.utils.ingredient_service import IngredientService, IngredientCategory, Ingredient
+from dataclasses import asdict
 
-file_path = os.path.join(os.path.dirname(__file__), "ingredient_watchlist.json")
-
-with open(file_path) as f:
-    watchlist = json.load(f)
-    flattened_watchlist = set(
-        i.lower() for i in chain.from_iterable(watchlist.values())
-    )
+# Initialize ingredient service
+ingredient_service = IngredientService()
 
 load_dotenv()
 
 app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 
 # Models
 class Ingredient(BaseModel):
@@ -50,6 +57,20 @@ class ScanRequest(BaseModel):
 
 class IngredientBriefRequest(BaseModel):
     ingredient: str
+
+class IngredientCreateRequest(BaseModel):
+    name: str
+    aliases: List[str] = []
+    category_id: str
+    severity_level: str = "moderate"
+    health_concerns: List[str] = []
+    environmental_impact: Optional[str] = None
+    research_summary: Optional[str] = None
+
+class CategoryCreateRequest(BaseModel):
+    name: str
+    description: str
+    severity_level: str = "moderate"
 
 # Routes
 @app.get("/")
@@ -94,13 +115,20 @@ async def scan_barcode(scan: ScanRequest):
     off_data = res.json()["product"]
 
     raw_ingredients = off_data.get("ingredients_text", "")
-    ingredients = raw_ingredients.split(',')
-    flagged_ingredients = []
     
-    for ingredient in ingredients:
-        name = ingredient.lower().strip()
-        if name in flattened_watchlist:
-            flagged_ingredients.append(ingredient.strip())
+    # Use the new ingredient service to flag ingredients
+    flagged_ingredient_objects = await ingredient_service.flag_ingredients_in_text(raw_ingredients)
+    flagged_ingredients = [flag.ingredient_name for flag in flagged_ingredient_objects]
+    
+    # Store flagged ingredient metadata for research brief generation
+    flagged_ingredients_metadata = {
+        flag.ingredient_name: {
+            "category": flag.category,
+            "severity": flag.severity,
+            "health_concerns": flag.health_concerns,
+            "has_research_summary": bool(flag.research_summary)
+        } for flag in flagged_ingredient_objects
+    }
     
     product_data = {
         "barcode": barcode,
@@ -119,7 +147,8 @@ async def scan_barcode(scan: ScanRequest):
 
     return {
         "product": product_data,
-        "flagged_ingredients": flagged_ingredients
+        "flagged_ingredients": flagged_ingredients,
+        "flagged_ingredients_metadata": flagged_ingredients_metadata
     }
 
 @app.post("/ingredient-brief")
@@ -133,11 +162,102 @@ async def get_ingredient_brief(request: IngredientBriefRequest):
     summary = get_summary_from_firestore(ingredient)
     
     if not summary:
-        # Generate new summary using RAG
+        # Generate new summary using RAG for any flagged ingredient
+        print(f"Generating research brief for flagged ingredient: {ingredient}")
         summary = rag_analysis(ingredient)
         store_summary_in_firestore(ingredient, summary)
+        
+        # Also store it in our ingredient database if it exists
+        try:
+            existing_ingredient = await ingredient_service.search_ingredient_by_name(ingredient)
+            if existing_ingredient and not existing_ingredient.research_summary:
+                # Update the ingredient with the generated summary
+                existing_ingredient.research_summary = summary
+                await ingredient_service.create_ingredient(existing_ingredient)  # This will update it
+        except Exception as e:
+            print(f"Error updating ingredient research summary: {e}")
     
     return {
         "ingredient": request.ingredient,
         "summary": summary
     }
+
+# Admin endpoints for ingredient management
+@app.post("/admin/categories")
+async def create_category(request: CategoryCreateRequest):
+    """Create a new ingredient category"""
+    try:
+        from datetime import datetime
+        category_id = request.name.lower().replace(" ", "_")
+        
+        category = IngredientCategory(
+            id=category_id,
+            name=request.name,
+            description=request.description,
+            severity_level=request.severity_level,
+            is_active=True,
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        
+        category_id = await ingredient_service.create_category(category)
+        return {"message": "Category created successfully", "category_id": category_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/admin/categories")
+async def get_categories():
+    """Get all ingredient categories"""
+    try:
+        categories = await ingredient_service.get_all_categories()
+        return {"categories": [asdict(cat) for cat in categories]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/admin/ingredients")
+async def create_ingredient(request: IngredientCreateRequest):
+    """Create a new ingredient"""
+    try:
+        from datetime import datetime
+        ingredient_id = f"{request.category_id}_{request.name.lower().replace(' ', '_')}"
+        
+        ingredient = Ingredient(
+            id=ingredient_id,
+            name=request.name.lower(),
+            aliases=request.aliases,
+            category_id=request.category_id,
+            severity_level=request.severity_level,
+            health_concerns=request.health_concerns,
+            environmental_impact=request.environmental_impact,
+            research_summary=request.research_summary,
+            is_active=True,
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        
+        ingredient_id = await ingredient_service.create_ingredient(ingredient)
+        return {"message": "Ingredient created successfully", "ingredient_id": ingredient_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/admin/ingredients")
+async def get_ingredients():
+    """Get all ingredients"""
+    try:
+        ingredients = await ingredient_service.get_all_ingredients()
+        return {"ingredients": [asdict(ing) for ing in ingredients]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/admin/migrate")
+async def migrate_from_json():
+    """Migrate ingredients from the old JSON watchlist"""
+    try:
+        file_path = os.path.join(os.path.dirname(__file__), "ingredient_watchlist.json")
+        with open(file_path) as f:
+            json_data = json.load(f)
+        
+        await ingredient_service.migrate_from_json(json_data)
+        return {"message": "Migration completed successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

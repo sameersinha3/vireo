@@ -1,6 +1,7 @@
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
+import { API_ENDPOINTS } from '../../config/api';
 
 export default function ScanResultScreen() {
   const params = useLocalSearchParams();
@@ -24,7 +25,7 @@ export default function ScanResultScreen() {
     setLoadingIngredients(prev => new Set(prev).add(ingredient));
     
     try {
-      const response = await fetch("http://192.168.68.59:8000/ingredient-brief", {
+      const response = await fetch(API_ENDPOINTS.INGREDIENT_BRIEF, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

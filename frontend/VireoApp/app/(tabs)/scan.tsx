@@ -2,6 +2,7 @@ import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useState } from 'react';
 import { Button, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { API_ENDPOINTS } from '../../config/api';
 
 
 export default function TabTwoScreen() {
@@ -38,7 +39,8 @@ export default function TabTwoScreen() {
 
     try {
       console.log("Barcode scanned:", data);
-      const response = await fetch("http://192.168.68.59:8000/scan", {
+      console.log("Making request to:", API_ENDPOINTS.SCAN);
+      const response = await fetch(API_ENDPOINTS.SCAN, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
