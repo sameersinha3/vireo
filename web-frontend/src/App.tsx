@@ -71,8 +71,7 @@ function App() {
       <header className="App-header">
         <div className="header-content">
           <div>
-            <h1>🥗 Vireo</h1>
-            <p>Smart Food Ingredient Analysis</p>
+            <h1>Vireo Web</h1>
           </div>
           <button 
             className="admin-toggle"
