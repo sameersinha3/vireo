@@ -1,4 +1,4 @@
-import { CameraView, CameraType, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
+import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useState } from 'react';
 import { Button, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -56,7 +56,7 @@ export default function TabTwoScreen() {
       router.push({
         pathname: "/(tabs)/scanresultscreen",
         params: {
-          summaries: JSON.stringify(res), // Pass the complete response
+          scanData: JSON.stringify(res), // Pass the complete response
         },
       });
 

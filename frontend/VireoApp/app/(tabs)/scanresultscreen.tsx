@@ -1,38 +1,120 @@
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 
 export default function ScanResultScreen() {
   const params = useLocalSearchParams();
+  const router = useRouter();
+  const [loadingIngredients, setLoadingIngredients] = useState<Set<string>>(new Set());
   
-  let summaries: Record<string, string> = {};
+  let scanData: { product: any; flagged_ingredients: string[] } = { product: {}, flagged_ingredients: [] };
   try {
-    const raw = Array.isArray(params.summaries) ? params.summaries[0] : params.summaries;
+    const raw = Array.isArray(params.scanData) ? params.scanData[0] : params.scanData;
     if (raw) {
-      summaries = JSON.parse(raw);
-      console.log(summaries)
+      scanData = JSON.parse(raw);
+      console.log(scanData)
     }
   } catch (err) {
-    console.error("Failed to parse summaries param:", err);
+    console.error("Failed to parse scan data param:", err);
   }
+
+  const handleIngredientPress = async (ingredient: string) => {
+    if (loadingIngredients.has(ingredient)) return;
+    
+    setLoadingIngredients(prev => new Set(prev).add(ingredient));
+    
+    try {
+      const response = await fetch("http://192.168.68.59:8000/ingredient-brief", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ingredient }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get ingredient brief");
+      }
+
+      const briefData = await response.json();
+      console.log("Brief data received:", briefData);
+
+      router.push(`/ingredientbrief?ingredient=${encodeURIComponent(briefData.ingredient)}&summary=${encodeURIComponent(briefData.summary)}` as any);
+
+    } catch (err) {
+      console.error("Brief error:", err);
+      Alert.alert(
+        "Error",
+        `Could not retrieve brief for ${ingredient}: ${err instanceof Error ? err.message : String(err)}`
+      );
+    } finally {
+      setLoadingIngredients(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(ingredient);
+        return newSet;
+      });
+    }
+  };
 
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Scan Results</Text>
-      <Text style={styles.summary}>View a brief of the latest studies of potentially dangerous ingredients</Text>
-      {Object.entries(summaries).map(([ingredient, summary], idx) => (
-        <View key={idx} style={styles.result}>
-          <Text style={styles.ingredient}>{ingredient}</Text>
-          <Text style={styles.summary}>{String(summary)}</Text>
-        </View>
+      <Text style={styles.subtitle}>{scanData.product.name || 'Product'}</Text>
+      <Text style={styles.summary}>
+        {scanData.flagged_ingredients.length > 0 
+          ? `Found ${scanData.flagged_ingredients.length} flagged ingredient(s). Tap to view research briefs.`
+          : "No flagged ingredients found in this product."
+        }
+      </Text>
+      
+      {scanData.flagged_ingredients.map((ingredient, idx) => (
+        <TouchableOpacity 
+          key={idx} 
+          style={styles.ingredientButton}
+          onPress={() => handleIngredientPress(ingredient)}
+          disabled={loadingIngredients.has(ingredient)}
+        >
+          <View style={styles.ingredientContent}>
+            <Text style={styles.ingredientText}>{ingredient}</Text>
+            {loadingIngredients.has(ingredient) ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>View Brief →</Text>
+            )}
+          </View>
+        </TouchableOpacity>
       ))}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16 },
-  title: { fontSize: 56, fontWeight: 'bold', marginBottom: 16, marginTop: 64, color: 'white' },
-  result: { marginBottom: 12, color: 'white' },
-  ingredient: { fontWeight: 'bold', fontSize: 32, color: 'white' },
-  summary: { fontSize: 18, color: 'white', marginBottom: 16 }
+  container: { padding: 16, backgroundColor: '#000' },
+  title: { fontSize: 56, fontWeight: 'bold', marginBottom: 8, marginTop: 64, color: 'white' },
+  subtitle: { fontSize: 24, fontWeight: '600', marginBottom: 16, color: '#ccc' },
+  summary: { fontSize: 18, color: 'white', marginBottom: 24, lineHeight: 24 },
+  ingredientButton: {
+    backgroundColor: '#333',
+    borderRadius: 12,
+    marginBottom: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#555',
+  },
+  ingredientContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  ingredientText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'white',
+    flex: 1,
+  },
+  buttonText: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
 });

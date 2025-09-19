@@ -48,6 +48,9 @@ class Product(BaseModel):
 class ScanRequest(BaseModel):
     barcode: str
 
+class IngredientBriefRequest(BaseModel):
+    ingredient: str
+
 # Routes
 @app.get("/")
 async def root():
@@ -92,22 +95,13 @@ async def scan_barcode(scan: ScanRequest):
 
     raw_ingredients = off_data.get("ingredients_text", "")
     ingredients = raw_ingredients.split(',')
-    summaries = {}
+    flagged_ingredients = []
+    
     for ingredient in ingredients:
         name = ingredient.lower().strip()
-        if name not in flattened_watchlist:
-            continue
-        
-        summary = get_summary_from_firestore(name)
-        summary = None
-        if not summary:
-            summary = rag_analysis(name)
-            store_summary_in_firestore(name, summary)
-        summaries[ingredient] = summary
+        if name in flattened_watchlist:
+            flagged_ingredients.append(ingredient.strip())
     
-    if not summaries.keys():
-        summaries = {"Note": "This product has no ingredients that were flagged by our watchlist."}
-
     product_data = {
         "barcode": barcode,
         "name": off_data.get("product_name"),
@@ -123,4 +117,27 @@ async def scan_barcode(scan: ScanRequest):
     # Store in Firestore
     product_ref.set(product_data)
 
-    return summaries
+    return {
+        "product": product_data,
+        "flagged_ingredients": flagged_ingredients
+    }
+
+@app.post("/ingredient-brief")
+async def get_ingredient_brief(request: IngredientBriefRequest):
+    if db is None:
+        raise HTTPException(status_code=500, detail="Firebase not initialized")
+    
+    ingredient = request.ingredient.lower().strip()
+    
+    # Check if we have a stored summary in Firestore
+    summary = get_summary_from_firestore(ingredient)
+    
+    if not summary:
+        # Generate new summary using RAG
+        summary = rag_analysis(ingredient)
+        store_summary_in_firestore(ingredient, summary)
+    
+    return {
+        "ingredient": request.ingredient,
+        "summary": summary
+    }
