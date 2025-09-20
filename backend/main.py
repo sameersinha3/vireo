@@ -55,6 +55,10 @@ class Product(BaseModel):
 class ScanRequest(BaseModel):
     barcode: str
 
+class ProductSearchRequest(BaseModel):
+    query: str
+    limit: int = 10
+
 class IngredientBriefRequest(BaseModel):
     ingredient: str
 
@@ -150,6 +154,51 @@ async def scan_barcode(scan: ScanRequest):
         "flagged_ingredients": flagged_ingredients,
         "flagged_ingredients_metadata": flagged_ingredients_metadata
     }
+
+@app.post("/search-products")
+async def search_products(request: ProductSearchRequest):
+    """Search for products by name using OpenFoodFacts API"""
+    try:
+        # Use OpenFoodFacts search API
+        search_url = "https://world.openfoodfacts.org/cgi/search.pl"
+        search_params = {
+            "search_terms": request.query,
+            "search_simple": 1,
+            "action": "process",
+            "json": 1,
+            "page_size": request.limit
+        }
+        
+        response = requests.get(search_url, params=search_params, timeout=10)
+        
+        if response.status_code != 200:
+            raise HTTPException(status_code=500, detail="Failed to search products")
+        
+        data = response.json()
+        products = data.get("products", [])
+        
+        # Format the results
+        formatted_products = []
+        for product in products:
+            if product.get("code") and product.get("product_name"):
+                formatted_products.append({
+                    "barcode": product.get("code"),
+                    "name": product.get("product_name"),
+                    "brand": product.get("brands"),
+                    "image_url": product.get("image_url"),
+                    "ingredients_text": product.get("ingredients_text", ""),
+                    "nutriscore": product.get("nutriscore_grade")
+                })
+        
+        return {
+            "products": formatted_products,
+            "total_results": len(formatted_products)
+        }
+        
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Search service unavailable: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
 @app.post("/ingredient-brief")
 async def get_ingredient_brief(request: IngredientBriefRequest):

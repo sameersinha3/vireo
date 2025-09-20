@@ -40,3 +40,17 @@ export interface IngredientBriefResponse {
   ingredient: string;
   summary: string;
 }
+
+export interface ProductSearchResult {
+  barcode: string;
+  name: string;
+  brand?: string;
+  image_url?: string;
+  ingredients_text?: string;
+  nutriscore?: string;
+}
+
+export interface ProductSearchResponse {
+  products: ProductSearchResult[];
+  total_results: number;
+}

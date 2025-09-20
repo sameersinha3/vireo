@@ -1,43 +1,79 @@
 import React, { useState } from 'react';
-import { Search, Barcode } from 'lucide-react';
+import { Search, Barcode, Package } from 'lucide-react';
 
 interface SearchComponentProps {
-  onSearch: (barcode: string) => void;
+  onSearch: (query: string, type: 'barcode' | 'product') => void;
   loading: boolean;
 }
 
 export const SearchComponent: React.FC<SearchComponentProps> = ({ onSearch, loading }) => {
-  const [barcode, setBarcode] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchType, setSearchType] = useState<'barcode' | 'product'>('barcode');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (barcode.trim()) {
-      onSearch(barcode.trim());
+    if (searchQuery.trim()) {
+      onSearch(searchQuery.trim(), searchType);
     }
   };
 
   return (
     <div className="search-container">
       <div className="search-header">
-        <Barcode className="search-icon" size={32} />
+        {searchType === 'barcode' ? (
+          <Barcode className="search-icon" size={32} />
+        ) : (
+          <Package className="search-icon" size={32} />
+        )}
         <h2>Search for a Product</h2>
-        <p>Enter a barcode to analyze ingredients</p>
+        <p>
+          {searchType === 'barcode' 
+            ? 'Enter a barcode to analyze ingredients' 
+            : 'Search for a product by name'
+          }
+        </p>
+      </div>
+      
+      {/* Search Type Toggle */}
+      <div className="search-type-toggle">
+        <button
+          type="button"
+          className={`toggle-button ${searchType === 'barcode' ? 'active' : ''}`}
+          onClick={() => setSearchType('barcode')}
+          disabled={loading}
+        >
+          <Barcode size={16} />
+          Barcode
+        </button>
+        <button
+          type="button"
+          className={`toggle-button ${searchType === 'product' ? 'active' : ''}`}
+          onClick={() => setSearchType('product')}
+          disabled={loading}
+        >
+          <Package size={16} />
+          Product Name
+        </button>
       </div>
       
       <form onSubmit={handleSubmit} className="search-form">
         <div className="input-group">
           <input
             type="text"
-            value={barcode}
-            onChange={(e) => setBarcode(e.target.value)}
-            placeholder="Enter barcode (e.g., 1234567890)"
-            className="barcode-input"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={
+              searchType === 'barcode' 
+                ? 'Enter barcode (e.g., 1234567890)' 
+                : 'Enter product name (e.g., Nutella, Coca Cola)'
+            }
+            className="search-input"
             disabled={loading}
           />
           <button 
             type="submit" 
             className="search-button"
-            disabled={loading || !barcode.trim()}
+            disabled={loading || !searchQuery.trim()}
           >
             {loading ? (
               <div className="spinner" />
@@ -51,32 +87,6 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({ onSearch, load
         </div>
       </form>
 
-      <div className="search-examples">
-        <p>Try these example barcodes:</p>
-        <div className="example-barcodes">
-          <button 
-            className="example-button"
-            onClick={() => setBarcode('3017620422003')}
-            disabled={loading}
-          >
-            Nutella (3017620422003)
-          </button>
-          <button 
-            className="example-button"
-            onClick={() => setBarcode('7622210939672')}
-            disabled={loading}
-          >
-            Oreo (7622210939672)
-          </button>
-          <button 
-            className="example-button"
-            onClick={() => setBarcode('1234567890')}
-            disabled={loading}
-          >
-            Test (1234567890)
-          </button>
-        </div>
-      </div>
     </div>
   );
 };
