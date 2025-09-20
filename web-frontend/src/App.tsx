@@ -19,7 +19,7 @@ function App() {
     setScanResult(null);
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://192.168.10.107:8000'}/scan`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://10.193.196.8:8000'}/scan`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -42,7 +42,7 @@ function App() {
 
   const handleIngredientClick = async (ingredient: string) => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://192.168.10.107:8000'}/ingredient-brief`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://10.193.196.8:8000'}/ingredient-brief`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
