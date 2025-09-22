@@ -47,7 +47,7 @@ export const AdminPanel: React.FC = () => {
     research_summary: ''
   });
 
-  const API_BASE = process.env.REACT_APP_API_URL || 'http://10.193.196.8:8000';
+  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
   useEffect(() => {
     loadCategories();

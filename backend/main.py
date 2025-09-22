@@ -15,9 +15,22 @@ from backend.utils.rag import rag_analysis
 from backend.utils.firestore import get_summary_from_firestore, store_summary_in_firestore
 from backend.utils.ingredient_service import IngredientService, IngredientCategory, Ingredient
 from dataclasses import asdict
+import asyncio
+from enum import Enum
 
 # Initialize ingredient service
 ingredient_service = IngredientService()
+
+# Progress tracking for RAG generation
+class GenerationStatus(Enum):
+    NOT_STARTED = "not_started"
+    SEARCHING_RESEARCH = "searching_research"
+    GENERATING_SUMMARY = "generating_summary"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+# In-memory progress tracking (in production, use Redis or Firestore)
+generation_progress = {}
 
 load_dotenv()
 
@@ -200,6 +213,16 @@ async def search_products(request: ProductSearchRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
+@app.get("/ingredient-brief-progress/{ingredient}")
+async def get_ingredient_brief_progress(ingredient: str):
+    """Get the current progress of ingredient brief generation"""
+    ingredient_key = ingredient.lower().strip()
+    progress = generation_progress.get(ingredient_key, {
+        "status": GenerationStatus.NOT_STARTED.value,
+        "message": "Not started"
+    })
+    return progress
+
 @app.post("/ingredient-brief")
 async def get_ingredient_brief(request: IngredientBriefRequest):
     if db is None:
@@ -211,25 +234,73 @@ async def get_ingredient_brief(request: IngredientBriefRequest):
     summary = get_summary_from_firestore(ingredient)
     
     if not summary:
-        # Generate new summary using RAG for any flagged ingredient
-        print(f"Generating research brief for flagged ingredient: {ingredient}")
-        summary = rag_analysis(ingredient)
-        store_summary_in_firestore(ingredient, summary)
+        # Check if generation is already in progress
+        if ingredient in generation_progress and generation_progress[ingredient]["status"] in [GenerationStatus.SEARCHING_RESEARCH.value, GenerationStatus.GENERATING_SUMMARY.value]:
+            return {
+                "ingredient": request.ingredient,
+                "summary": None,
+                "in_progress": True,
+                "status": generation_progress[ingredient]["status"],
+                "message": generation_progress[ingredient]["message"]
+            }
         
-        # Also store it in our ingredient database if it exists
-        try:
-            existing_ingredient = await ingredient_service.search_ingredient_by_name(ingredient)
-            if existing_ingredient and not existing_ingredient.research_summary:
-                # Update the ingredient with the generated summary
-                existing_ingredient.research_summary = summary
-                await ingredient_service.create_ingredient(existing_ingredient)  # This will update it
-        except Exception as e:
-            print(f"Error updating ingredient research summary: {e}")
+        # Start generation in background
+        asyncio.create_task(generate_ingredient_brief_async(ingredient))
+        
+        return {
+            "ingredient": request.ingredient,
+            "summary": None,
+            "in_progress": True,
+            "status": GenerationStatus.SEARCHING_RESEARCH.value,
+            "message": "Starting research..."
+        }
     
     return {
         "ingredient": request.ingredient,
-        "summary": summary
+        "summary": summary,
+        "in_progress": False
     }
+
+async def generate_ingredient_brief_async(ingredient: str):
+    """Generate ingredient brief asynchronously with progress updates"""
+    try:
+        # Update progress: searching research
+        generation_progress[ingredient] = {
+            "status": GenerationStatus.SEARCHING_RESEARCH.value,
+            "message": "Searching PubMed for research..."
+        }
+        
+        # Import here to avoid circular imports
+        from backend.utils.rag import rag_analysis_with_progress
+        
+        # Generate with progress updates
+        summary = await rag_analysis_with_progress(ingredient, generation_progress)
+        
+        # Store the result
+        store_summary_in_firestore(ingredient, summary)
+        
+        # Update ingredient database if it exists
+        try:
+            existing_ingredient = await ingredient_service.search_ingredient_by_name(ingredient)
+            if existing_ingredient and not existing_ingredient.research_summary:
+                existing_ingredient.research_summary = summary
+                await ingredient_service.create_ingredient(existing_ingredient)
+        except Exception as e:
+            print(f"Error updating ingredient research summary: {e}")
+        
+        # Mark as completed
+        generation_progress[ingredient] = {
+            "status": GenerationStatus.COMPLETED.value,
+            "message": "Research brief completed",
+            "summary": summary
+        }
+        
+    except Exception as e:
+        print(f"Error generating brief for {ingredient}: {e}")
+        generation_progress[ingredient] = {
+            "status": GenerationStatus.FAILED.value,
+            "message": f"Failed to generate brief: {str(e)}"
+        }
 
 # Admin endpoints for ingredient management
 @app.post("/admin/categories")

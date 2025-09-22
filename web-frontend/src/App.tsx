@@ -23,7 +23,7 @@ function App() {
     try {
       if (type === 'barcode') {
         // Barcode search - get specific product
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://10.193.196.8:8000'}/scan`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/scan`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -39,7 +39,7 @@ function App() {
         setScanResult(result);
       } else {
         // Product name search - get list of products
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://10.193.196.8:8000'}/search-products`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/search-products`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -66,7 +66,7 @@ function App() {
     setError(null);
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://10.193.196.8:8000'}/scan`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/scan`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ function App() {
 
   const handleIngredientClick = async (ingredient: string) => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://10.193.196.8:8000'}/ingredient-brief`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/ingredient-brief`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -139,7 +139,7 @@ function App() {
             
             {error && (
               <div className="error-message">
-                <p>❌ {error}</p>
+                <p>{error}</p>
               </div>
             )}
 

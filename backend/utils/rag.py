@@ -70,3 +70,51 @@ Research abstracts:
     response = model.generate_content(prompt)
 
     return response.text
+
+async def rag_analysis_with_progress(ingredient: str, progress_dict: dict):
+    """RAG analysis with progress updates"""
+    import asyncio
+    
+    # Update progress: searching research
+    progress_dict[ingredient] = {
+        "status": "searching_research",
+        "message": "Searching PubMed for research..."
+    }
+    
+    # Run PubMed search in thread pool to avoid blocking
+    loop = asyncio.get_event_loop()
+    papers = await loop.run_in_executor(None, retrieve_pubmed_studies, ingredient)
+
+    if not papers:
+        return f"No relevant research found for {ingredient}."
+
+    # Update progress: generating summary
+    progress_dict[ingredient] = {
+        "status": "generating_summary", 
+        "message": "Generating research summary..."
+    }
+
+    context = "\n\n".join(
+        f"{paper['title']}:\n{paper.get('abstract', 'No abstract available.')}"
+        for paper in papers
+    )
+
+    prompt = f"""
+You are a food science expert analyzing current research.
+
+Based on the abstracts below, give advice to a potential consumer about the health risks of the food ingredient '{ingredient}'? 
+
+If there is public concern but evidence suggests safety, say "despite concerns, research suggests...". Be honest about uncertainty. Use simple language.
+
+Research abstracts:
+{context}
+"""
+
+    # Run Gemini generation in thread pool
+    def generate_content():
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(prompt)
+        return response.text
+    
+    summary = await loop.run_in_executor(None, generate_content)
+    return summary
