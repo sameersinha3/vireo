@@ -8,12 +8,15 @@ load_dotenv()
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-def retrieve_pubmed_studies(ingredient: str, limit=3) -> list[dict]:
-    # Step 1: Search for PubMed IDs
+def retrieve_pubmed_studies(ingredient: str, limit=5) -> list[dict]:
+    # Improved search query focusing on safety and health effects
+    search_term = f'({ingredient}) AND (safety OR toxicity OR "adverse effects" OR "health effects" OR "meta-analysis" OR "systematic review")'
+    
+    # Step 1: Search for PubMed IDs with improved query
     search_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
     search_params = {
         "db": "pubmed",
-        "term": ingredient,
+        "term": search_term,
         "retmode": "json",
         "retmax": limit,
     }
@@ -34,12 +37,30 @@ def retrieve_pubmed_studies(ingredient: str, limit=3) -> list[dict]:
     root = ElementTree.fromstring(fetch_response.content)
 
     results = []
+    ingredient_lower = ingredient.lower()
+    
     for article in root.findall(".//PubmedArticle"):
         title_el = article.find(".//ArticleTitle")
         abstract_el = article.find(".//Abstract/AbstractText")
         title = title_el.text if title_el is not None else "No title"
         abstract = abstract_el.text if abstract_el is not None else "No abstract"
-        results.append({"title": title, "abstract": abstract})
+        
+        # Simple abstract filtering: skip if ingredient not clearly mentioned
+        title_lower = title.lower()
+        abstract_lower = abstract.lower()
+        
+        # Check if ingredient is mentioned in title or abstract
+        if (ingredient_lower in title_lower or 
+            ingredient_lower in abstract_lower or
+            # Also check for common variations
+            ingredient_lower.replace(" ", "") in title_lower.replace(" ", "") or
+            ingredient_lower.replace(" ", "") in abstract_lower.replace(" ", "")):
+            
+            results.append({"title": title, "abstract": abstract})
+            
+            # Stop when we have enough relevant results
+            if len(results) >= limit:
+                break
 
     return results
 
